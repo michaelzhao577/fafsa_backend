@@ -92,7 +92,7 @@ func getData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	id := vars["id"]
-	question := vars["question"]
+	question := string(vars["question"])
 
 	var user User
 
@@ -100,8 +100,9 @@ func getData(w http.ResponseWriter, r *http.Request) {
 
 	ref := reflect.ValueOf(user)
 	answer := reflect.Indirect(ref).FieldByName(question)
+	output := answer.Interface().(string)
 
-	json.NewEncoder(w).Encode(answer)
+	json.NewEncoder(w).Encode(output)
 }
 
 func setupRouters() *mux.Router {
