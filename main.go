@@ -21,14 +21,6 @@ type User struct {
 	FSAIDPassword string
 }
 
-// var (
-// 	user = &User{
-// 		Name:          "Jack",
-// 		Email:         "jack@gmail.com",
-// 		FSAIDPassword: "password",
-// 	}
-// )
-
 var db *gorm.DB
 var err error
 
@@ -109,6 +101,7 @@ func setupRouters() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/data/{id}/{question}", getData).Methods("GET")
+	router.HandleFunc("/data", storeData).Methods("POST")
 
 	return router
 }
