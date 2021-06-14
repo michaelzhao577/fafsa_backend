@@ -16,8 +16,10 @@ import (
 // User model for postgres DB
 type User struct {
 	gorm.Model
-
-	Name          string
+	First_Name    string
+	Last_Name     string
+	SSN           string
+	DOB           string
 	Email         string
 	FSAIDPassword string
 }
@@ -38,7 +40,7 @@ func main() {
 	os.Setenv("DBPORT", "5432")
 	os.Setenv("USER", "postgres")
 	os.Setenv("NAME", "fafsa_data")
-	os.Setenv("PASSWORD", "postgres")
+	os.Setenv("PASSWORD", "Wzc@jw0724")
 	host := os.Getenv("HOST")
 	dbPort := os.Getenv("DBPORT")
 	user := os.Getenv("USER")
@@ -62,13 +64,16 @@ func main() {
 	// make migration to the db if they have not already been created
 	db.AutoMigrate(&User{})
 
-	testUser := User{
-		Name:          "Jack",
-		Email:         "jack@gmail.com",
-		FSAIDPassword: "password",
-	}
+	// testUser := User{
+	// 	First_Name:    "Jack",
+	// 	Last_Name:     "Doe",
+	// 	SSN:           "123456789",
+	// 	DOB:           "07/21/1999",
+	// 	Email:         "jack@gmail.com",
+	// 	FSAIDPassword: "password",
+	// }
 
-	db.Create(&testUser)
+	// db.Create(&testUser)
 
 	router := setupRouters()
 
@@ -97,8 +102,8 @@ func getData(w http.ResponseWriter, r *http.Request) {
 	question := string(vars["question"])
 
 	var user User
-
-	db.First(&user, id)
+	// Escaping arguments to avoid SQL injections following https://gorm.io/docs/security.html
+	db.Where("id = ?", id).First(&user)
 
 	ref := reflect.ValueOf(user)
 	answer := reflect.Indirect(ref).FieldByName(question)
