@@ -90,14 +90,13 @@ func getData(w http.ResponseWriter, r *http.Request) {
 
 	id := vars["id"]
 	question := string(vars["question"])
-	log.Print(question)
-	var user User
 
-	db.First(&user, id)
+	var user User
+	// Escaping arguments to avoid SQL injections following https://gorm.io/docs/security.html
+	db.Where("id = ?", id).First(&user)
 
 	ref := reflect.ValueOf(user)
 	answer := reflect.Indirect(ref).FieldByName(question)
-	log.Print(answer)
 	output := answer.Interface().(string)
 
 	json.NewEncoder(w).Encode(output)
