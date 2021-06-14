@@ -13,12 +13,20 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
+// User model for postgres DB
 type User struct {
 	gorm.Model
 
 	Name          string
 	Email         string
 	FSAIDPassword string
+}
+
+// map for checking whether questions are valid
+doesExist := map[string]bool {
+		"Name": true, 
+		"Email": true,
+		"FSAIDPassword": true
 }
 
 var db *gorm.DB
@@ -67,6 +75,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
+//create new user
 func storeData(w http.ResponseWriter, r *http.Request) {
 	var user User
 	json.NewDecoder(r.Body).Decode(&user)
@@ -80,6 +89,7 @@ func storeData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//get a user's answer to a question specified in http request
 func getData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -93,14 +103,60 @@ func getData(w http.ResponseWriter, r *http.Request) {
 	ref := reflect.ValueOf(user)
 	answer := reflect.Indirect(ref).FieldByName(question)
 	output := answer.Interface().(string)
+	if output == "" {
+		json.NewEncoder(w).Encode("answer to question " + question + " has not been set")
+	} else {
+		json.NewEncoder(w).Encode(output)
+	}
+}
 
-	json.NewEncoder(w).Encode(output)
+//get a user's entire dataset
+func getAllData(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	var user User
+
+	db.First(&user, id)
+
+	json.NewEncoder(w).Encode(&user)
+}
+
+// update a user's data
+func updateData(w http.ResponseWriter, r *http.Request) {
+	var user User
+	json.NewDecoder(r.Body).Decode(&user)
+
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	var user User
+
+	db.First(&user, id)
+
+}
+
+func deleteData(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	id := vars["id"]
+
+	var user User
+
+	db.First(&user, id)
+	db.Delete(&user)
+
+	json.NewEncoder(w).Encode(&user)
 }
 
 func setupRouters() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/data/{id}/{question}", getData).Methods("GET")
+	router.HandleFunc("/data/{id}", getAllData).Methods("GET")
+	router.HandleFunc("/data/{id}").Methods("DELETE")
 	router.HandleFunc("/data", storeData).Methods("POST")
 
 	return router
