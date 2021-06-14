@@ -94,7 +94,7 @@ func storeData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//get a user's answer to a question specified in http request
+// get a user's answer to a question specified in http request
 func getData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -115,7 +115,7 @@ func getData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//get a user's entire dataset
+// get a user's entire dataset
 func getAllData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -128,7 +128,7 @@ func getAllData(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&user)
 }
 
-// update a user's data
+// update a user's data ***unfinished
 func updateData(w http.ResponseWriter, r *http.Request) {
 	var user User
 	json.NewDecoder(r.Body).Decode(&user)
@@ -143,6 +143,7 @@ func updateData(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// delete a user's dataset
 func deleteData(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -161,7 +162,7 @@ func setupRouters() *mux.Router {
 
 	router.HandleFunc("/data/{id}/{question}", getData).Methods("GET")
 	router.HandleFunc("/data/{id}", getAllData).Methods("GET")
-	router.HandleFunc("/data/{id}").Methods("DELETE")
+	router.HandleFunc("/data/{id}", deleteData).Methods("DELETE")
 	router.HandleFunc("/data", storeData).Methods("POST")
 
 	return router
