@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -24,15 +26,17 @@ type User struct {
 	FSAIDPassword string
 }
 
-// map for checking whether questions are valid
-doesExist := map[string]bool {
-		"Name": true, 
-		"Email": true,
-		"FSAIDPassword": true
-}
-
 var db *gorm.DB
 var err error
+
+var doesExist = map[string]bool{
+	"First_Name":    true,
+	"Last_Name":     true,
+	"SSN":           true,
+	"DOB":           true,
+	"Email":         true,
+	"FSAIDPassword": true,
+}
 
 func main() {
 	// load environment variables
@@ -40,7 +44,8 @@ func main() {
 	os.Setenv("DBPORT", "5432")
 	os.Setenv("USER", "postgres")
 	os.Setenv("NAME", "fafsa_data")
-	os.Setenv("PASSWORD", "Wzc@jw0724")
+	// os.Setenv("PASSWORD", "Wzc@jw0724")
+	os.Setenv("PASSWORD", "postgres")
 	host := os.Getenv("HOST")
 	dbPort := os.Getenv("DBPORT")
 	user := os.Getenv("USER")
@@ -90,6 +95,8 @@ func storeData(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		json.NewEncoder(w).Encode(err)
 	} else {
+		id := strconv.Itoa(int(user.ID))
+		json.NewEncoder(w).Encode("User created successfully! ID is " + id)
 		json.NewEncoder(w).Encode(&user)
 	}
 }
@@ -123,24 +130,35 @@ func getAllData(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 
-	db.First(&user, id)
-
-	json.NewEncoder(w).Encode(&user)
+	err := db.First(&user, id).Error
+	if err != nil {
+		json.NewEncoder(w).Encode(err)
+	} else {
+		db.Where("id = ?", id).First(&user)
+		json.NewEncoder(w).Encode(&user)
+	}
 }
 
-// update a user's data ***unfinished
+// update a user's data
 func updateData(w http.ResponseWriter, r *http.Request) {
-	var user User
-	json.NewDecoder(r.Body).Decode(&user)
+	body, _ := ioutil.ReadAll(r.Body)
+	var newAnswers map[string]string
+	json.Unmarshal(body, &newAnswers)
 
 	vars := mux.Vars(r)
 
 	id := vars["id"]
 
 	var user User
+	// Escaping arguments to avoid SQL injections following https://gorm.io/docs/security.html
+	db.Where("id = ?", id).First(&user)
 
-	db.First(&user, id)
+	for key, value := range newAnswers {
+		fmt.Println(key, value)
+		reflect.ValueOf(&user).Elem().FieldByName(key).SetString(value)
+	}
 
+	db.Save(&user)
 }
 
 // delete a user's dataset
@@ -160,10 +178,11 @@ func deleteData(w http.ResponseWriter, r *http.Request) {
 func setupRouters() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/data/{id}/{question}", getData).Methods("GET")
+	// router.HandleFunc("/data/{id}/{question}", getData).Methods("GET")
 	router.HandleFunc("/data/{id}", getAllData).Methods("GET")
 	router.HandleFunc("/data/{id}", deleteData).Methods("DELETE")
 	router.HandleFunc("/data", storeData).Methods("POST")
+	router.HandleFunc("/data/{id}", updateData).Methods("PUT")
 
 	return router
 }
