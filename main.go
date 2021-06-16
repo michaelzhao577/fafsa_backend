@@ -129,10 +129,13 @@ func getAllData(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 
 	var user User
+	var count int
 
-	err := db.First(&user, id).Error
-	if err != nil {
-		json.NewEncoder(w).Encode(err)
+	// check if user exists
+	db.Model(&user).Where("id = ?", id).Count(&count)
+
+	if count < 1 {
+		json.NewEncoder(w).Encode("Error. User does not exist")
 	} else {
 		db.Where("id = ?", id).First(&user)
 		json.NewEncoder(w).Encode(&user)
@@ -154,11 +157,16 @@ func updateData(w http.ResponseWriter, r *http.Request) {
 	db.Where("id = ?", id).First(&user)
 
 	for key, value := range newAnswers {
+		if doesExist[key] == false {
+			json.NewEncoder(w).Encode("Error. Field " + key + " does not exist")
+			return
+		}
 		fmt.Println(key, value)
 		reflect.ValueOf(&user).Elem().FieldByName(key).SetString(value)
 	}
 
 	db.Save(&user)
+	json.NewEncoder(w).Encode("User updated successfully!")
 }
 
 // delete a user's dataset
@@ -172,7 +180,7 @@ func deleteData(w http.ResponseWriter, r *http.Request) {
 	db.First(&user, id)
 	db.Delete(&user)
 
-	json.NewEncoder(w).Encode(&user)
+	json.NewEncoder(w).Encode("User " + id + " deleted successfully!")
 }
 
 func setupRouters() *mux.Router {
